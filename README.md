@@ -226,11 +226,13 @@ npx -y -p typescript@5.7 tsc -p tsconfig.real.json
 
 ### 发布到 GitHub
 
+仓库已经在本地初始化并提交。创建 GitHub 仓库后推送即可：
+
 ```bash
-git init
-git add .
-git commit -m "feat: LaTeX math rendering mod for Claude Code"
-git branch -M main
+# 方式一：gh CLI 一步创建并推送
+gh repo create claude-ui-tex --public --source=. --remote=origin --push
+
+# 方式二：先在 GitHub 网页上建空仓库，再添加远程
 git remote add origin https://github.com/<your-name>/claude-ui-tex.git
 git push -u origin main
 ```
