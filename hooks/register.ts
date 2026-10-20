@@ -178,7 +178,7 @@ export const register: Register = (on, options) => {
     const result = await next(e)
     isTold = false
     return result
-  })
+  }).catch(async ($, e, next) => next(e))
 
   on('session.end', ($, e, next) => {
     if ((e as { reason?: string }).reason === 'clear') {
@@ -197,7 +197,7 @@ export const register: Register = (on, options) => {
     const result = await next({ ...e, context: [...(e.context ?? []), MATH_NOTE] })
     if (!result.drop) isTold = true
     return result
-  })
+  }).catch(async ($, e, next) => next(e))
 
   on('ui.render', { component: 'AssistantMessage' }, async ($, e, next) => {
     const text = e.props.text
