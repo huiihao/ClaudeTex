@@ -1,0 +1,5 @@
+{
+  "extends": "./.claude-plugin/types/tsconfig.json",
+  "include": ["src/**/*.ts", "hooks/**/*.ts"],
+  "exclude": ["tests", "dev-types", "node_modules"]
+}

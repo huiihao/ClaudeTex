@@ -1,0 +1,44 @@
+{
+  "name": "tex",
+  "displayName": "TeX in Terminal",
+  "version": "0.1.0",
+  "description": "Typesets LaTeX math in Claude Code replies as Unicode text in the terminal, and opens a KaTeX browser preview of the same reply.",
+  "author": {
+    "name": "claude-ui-tex contributors"
+  },
+  "license": "MIT",
+  "keywords": [
+    "latex",
+    "katex",
+    "math",
+    "unicode",
+    "terminal",
+    "mod"
+  ],
+  "userConfig": {
+    "inline": {
+      "type": "boolean",
+      "title": "Typeset inline math",
+      "description": "Convert $...$ and \\(...\\) in replies to Unicode math.",
+      "default": true
+    },
+    "display": {
+      "type": "boolean",
+      "title": "Typeset display math",
+      "description": "Lay out $$...$$ and \\[...\\] as multi-line Unicode formulas.",
+      "default": true
+    },
+    "teach_claude": {
+      "type": "boolean",
+      "title": "Tell Claude to write LaTeX",
+      "description": "Add a short note to the first prompt of each context window so Claude writes formulas as LaTeX instead of Unicode or ASCII.",
+      "default": true
+    },
+    "max_width": {
+      "type": "number",
+      "title": "Maximum display width",
+      "description": "Widest display formula in terminal cells. 0 uses the terminal width.",
+      "default": 0
+    }
+  }
+}
