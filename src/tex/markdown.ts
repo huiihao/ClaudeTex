@@ -281,7 +281,8 @@ export function transformMarkdown(text: string, options: TransformOptions): Tran
         const close = findEscapedClose(text, i + 2, '\\)')
         if (close !== -1) {
           const content = text.slice(i + 2, close)
-          if (looksLikeMath(content)) {
+          // `\(...\)` is unambiguous LaTeX, so surrounding spaces are fine.
+          if (looksLikeMath(content, true)) {
             out += escapeMarkdown(inlineTex(content))
             count++
             i = close + 2
@@ -319,7 +320,8 @@ export function transformMarkdown(text: string, options: TransformOptions): Tran
         if (close !== -1) {
           const content = text.slice(i + 2, close)
           const displayContext = atLineStart(text, i)
-          if (looksLikeMath(content, displayContext)) {
+          // `$$...$$` is explicit; prose-word rejection still applies.
+          if (looksLikeMath(content, true)) {
             if (displayContext) {
               out += '\n\n' + displayBlock(displayTex(content, maxWidth), '') + '\n\n'
               count++

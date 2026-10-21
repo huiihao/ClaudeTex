@@ -181,7 +181,7 @@ Markdown 中的代码块和行内代码不会被改写；`$5`、`$10`、`$PATH` 
 - **误判防护**：行内公式要求更严格的信号；`$$ $$`、`$$$$`、`$5`、`$PATH`、`$and$` 不会被改写；display 公式允许首尾空白。
 - **失败回退**：`transform` 内部任何异常都会返回原文；`/tex` 写文件失败会返回可读错误，不会抛到会话里。
 - **预览页安全**：CDN 资源带 **SRI** 校验；HTML 内容经 DOMPurify 清洗；CSP 限制脚本/样式/字体来源；`</script>` 等序列会被转义；marked 解析失败时退回显示 Markdown 源码。
-- **测试**：**36 个测试**覆盖正常公式、矩阵/环境、malformed 输入、深层嵌套、超长输入、CRLF、代码 span、金额误判、命令错误路径、预览页转义等。
+- **测试**：**38 个测试**覆盖正常公式、矩阵/环境、malformed 输入、深层嵌套、超长输入、CRLF、代码 span、金额误判、命令错误路径、预览页转义等。
 
 ---
 
@@ -204,7 +204,7 @@ claudetex/
 │   │   ├── layout.ts        # Unicode 行内渲染 + 二维块布局
 │   │   └── markdown.ts      # Markdown 扫描器：跳过代码，替换公式
 │   └── preview.ts           # KaTeX 预览 HTML（SRI + CSP）
-├── tests/                   # 36 个测试，claude plugin test 运行
+├── tests/                   # 38 个测试，claude plugin test 运行
 ├── dev-types/stubs.d.ts     # 本地类型检查用的最小声明
 ├── docs/preview.png
 └── README.md
@@ -230,6 +230,7 @@ claudetex/
 - **终端内不是像素级 KaTeX**。终端只能显示字符；分数、矩阵等用 Unicode 制表符做二维近似。真正的排版在 `/tex` 的浏览器页面里。
 - **不做终端图片**。Windows Terminal 不支持 kitty graphics，Claude Code 的 `Image` 元素也只在 kitty/Ghostty 类终端生效，因此本项目没有把公式渲染成 PNG 覆盖到终端上。
 - **`$...$` 是启发式识别**。极少数金额、shell 变量或非公式的 `$` 可能被误判；可以用行内代码包起来避免。
+- **缩进代码块（4 空格开头）**中的 `$...$` 可能仍会被当作行内公式；请用 fenced code（```）包裹代码。
 - **不是完整 TeX 引擎**。未知命令会以命令名显示；极复杂的宏、TikZ、外部宏包不在支持范围内。
 - **`/btw` 面板不经过 `ui.render`**。侧问的回答由 Claude Code 自己的面板绘制，mod 只能通过提示让模型在 `/btw` 里使用 Unicode。
 - **复制的是 Unicode**。从终端选中复制得到的是排版后的字符，不是原始 LaTeX；需要 LaTeX 时用 `/tex` 页面里的 **Source** / **Copy Markdown**。

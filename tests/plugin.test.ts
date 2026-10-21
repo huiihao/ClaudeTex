@@ -118,6 +118,18 @@ test('the preview page keeps the source in an inert template', () => {
   expect(html).toContain('Claudetex')
 })
 
+test('session.start registers /tex and /tex-preview', async ($, on) => {
+  const registered: string[] = []
+  on('session.start', () => ({ cwd: '/work' }))
+  on('command.register', ($, e) => {
+    registered.push(e.name)
+    return { value: undefined }
+  })
+  await $.session.start({ surface: 'terminal', isInteractive: true, cwd: '/work' })
+  expect(registered).toContain('tex')
+  expect(registered).toContain('tex-preview')
+})
+
 test('the prompt note is added once per context window', async ($, on) => {
   let seen: { context?: string[] } | undefined
   on('session.surfaces', () => ({ value: ['terminal'] }))

@@ -101,3 +101,12 @@ test('display math with surrounding whitespace is still display', () => {
   expect(output).toContain('```')
   expect(output).toContain('x')
 })
+
+test('explicit delimiters allow surrounding whitespace', () => {
+  const inline = transformMarkdown('Inline \\( x + 1 \\) here.', options).text
+  expect(inline).not.toContain('\\(')
+  expect(inline).toContain('x')
+  const mid = transformMarkdown('Mid $$ x + 1 $$ sentence.', options).text
+  expect(mid).not.toContain('$$')
+  expect(mid).toContain('x')
+})
