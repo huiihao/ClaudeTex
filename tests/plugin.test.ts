@@ -115,7 +115,7 @@ test('the preview page keeps the source in an inert template', () => {
   expect(html).toContain('cdnjs.cloudflare.com')
   expect(html).toContain('integrity="sha384-')
   expect(html).toContain('Content-Security-Policy')
-  expect(html).toContain('Claudetex')
+  expect(html).toContain('ClaudeTex')
 })
 
 test('session.start registers /tex and /tex-preview', async ($, on) => {

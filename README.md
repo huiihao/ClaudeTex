@@ -1,130 +1,126 @@
-# Claudetex · TeX in Terminal
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/banner-dark.png">
+    <img src="docs/banner-light.png" alt="ClaudeTex — LaTeX for Claude Code" width="100%">
+  </picture>
+</p>
 
-> 一个真正的 **Claude Code mod（plugin）**：在 Claude Code CLI 的对话里，把 AI 输出的 LaTeX 公式排版成可读的 Unicode 公式；需要像素级排版时，用 `/tex` 在浏览器里以 **KaTeX** 精确渲染同一条回复。
+<h1 align="center">ClaudeTex</h1>
 
-不修改 Claude Code 本体，不依赖 VS Code，不需要 TeX 安装，也不需要 Node.js。
+<p align="center">
+  <strong>LaTeX, readable in your terminal — typeset with KaTeX in your browser.</strong><br>
+  A real Claude Code mod. No wrapper. No VS Code. No TeX install.
+</p>
 
-![KaTeX 浏览器预览](docs/preview.png)
+<p align="center">
+  <a href="https://github.com/huiihao/ClaudeTex/releases"><img alt="Release" src="https://img.shields.io/github/v/release/huiihao/ClaudeTex?style=flat-square&color=D97757&label=release"></a>
+  <a href="https://github.com/huiihao/ClaudeTex/actions/workflows/test.yml"><img alt="CI" src="https://github.com/huiihao/ClaudeTex/actions/workflows/test.yml/badge.svg?branch=main"></a>
+  <img alt="Claude Code 2.1.287+" src="https://img.shields.io/badge/Claude%20Code-2.1.287%2B-191919?style=flat-square&labelColor=D97757">
+  <img alt="38 tests passing" src="https://img.shields.io/badge/tests-38%20passing-D97757?style=flat-square">
+  <a href="LICENSE"><img alt="MIT" src="https://img.shields.io/github/license/huiihao/ClaudeTex?style=flat-square&color=191919"></a>
+</p>
 
-## 关于名字
-
-**Claudetex = Claude + TeX。**
-
-`claudex` 很顺口，但 GitHub 上已有十几个同名项目，且大多表示 “Claude + Codex” 多模型代理；npm 上的 `claudex` 也已被占用（v1.0.5）。为了避免混淆，项目名使用 **Claudetex**：
-
-| 名称 | 值 |
-| --- | --- |
-| 项目 / GitHub 仓库 / marketplace | `claudetex` |
-| 可安装插件 id | `tex` |
-| 命令 | `/tex`（别名 `/tex-preview`） |
-| 配置键 | `pluginConfigs.tex.options` |
-
----
-
-## 为什么需要它
-
-Claude Code 的 CLI 是字符网格，本身不渲染 LaTeX。社区里的方案大多依赖终端图形协议：
-
-- `kitty` / `Ghostty` 的 kitty graphics protocol —— **Windows Terminal 不支持**；
-- Sixel —— Claude Code 的 `Image` 元素不走这条路；
-- VS Code 扩展 —— 只在 VS Code 面板里生效，不是 CLI。
-
-这个 mod 走两条互补的路线：
-
-1. **终端内**：hook `ui.render`，在回复画出来之前把行内公式转成 Unicode、把独立公式排成二维文本块（分数、根号、上下限、矩阵、cases、aligned……），任何终端都能看。
-2. **浏览器内**：`/tex` 把最近的回复写成本地 HTML，用 KaTeX 做真正的排版。终端里不好读的复杂公式，按一下命令就能在浏览器里看。
+<p align="center">
+  <a href="#quick-start">Quick start</a> ·
+  <a href="#features">Features</a> ·
+  <a href="#configuration">Configuration</a> ·
+  <a href="#how-it-works">How it works</a> ·
+  <a href="#limitations">Limitations</a> ·
+  <a href="README.zh-CN.md">简体中文</a>
+</p>
 
 ---
 
-## 效果
+## Why ClaudeTex?
 
-终端里（Unicode 排版）：
+Claude Code's CLI is a character grid. It does not typeset LaTeX, and most existing solutions depend on terminal graphics (kitty/Ghostty) that Windows Terminal does not support.
+
+ClaudeTex is a **real Claude Code mod** that hooks the renderer itself. It gives you two complementary layers:
+
+1. **In the terminal** — inline math becomes Unicode, and display math is laid out as a two-dimensional block: fractions with a real bar, roots, limits above and below sums, matrices, `cases`, `aligned`, `boxed`. Works in any terminal.
+2. **In the browser** — `/tex` writes the current reply to a local HTML page and opens it with **KaTeX** for pixel-perfect typesetting. Complex formulas that are hard to read in a cell grid look exactly right there.
+
+> **Design principle: never lose the reply.** If a formula is malformed, too large, or nested too deeply, ClaudeTex leaves the original LaTeX in place instead of breaking the session.
+
+## Demo
 
 ```text
-∇_(θ)L = 1/N ∑ᵢ₌₁ᴺ ∇_(θ)ℓ(f(xᵢ), yᵢ)
+You  ❯  differentiate f(x) = x² sin x
+
+●  f′(x) = 2x sin x + x² cos x
+
+You  ❯  show the quadratic formula
 
         −b ± √(b² − 4ac)
         ────────────────
                    2a
 
-      n       n(n + 1)(2n + 1)
-      ∑  i² = ────────────────
-         i=1             6
-
-          ⎧ x²  x ≥ 0
-          ⎩ −x  x < 0
-
-            ⎛ a  b ⎞
-            ⎝ c  d ⎠
+You  ❯  /tex
+   KaTeX preview opened in your browser: …/claudetex-preview-….html
 ```
 
-浏览器里（`/tex`，KaTeX）：
+<p align="center">
+  <img src="docs/preview.png" alt="ClaudeTex KaTeX preview" width="82%">
+</p>
 
-- 行内 `$...$`、独立 `$$...$$`、`\(...\)`、`\[...\]`
-- 矩阵、`cases`、`aligned`、积分、求和、希腊字母、`\mathbb`、`\text`
-- 表格、代码块、引用、标题等 Markdown 原样保留
-- 可在页面里切换查看 Markdown 源码，或复制整条回复
+<p align="center"><sub>The on-demand KaTeX preview, opened with <code>/tex</code>.</sub></p>
 
----
+## Features
 
-## 安装
+| | |
+| --- | --- |
+| **Automatic terminal typesetting** | `$...$` and `\(...\)` are converted before Claude Code draws the reply. |
+| **Real 2D display math** | Fractions, roots, `\sum` / `\prod` limits, matrices, `cases`, `aligned`, `boxed`, `\binom`. |
+| **True KaTeX on demand** | `/tex` opens the latest reply in your browser; `/tex all` includes every reply from the session. |
+| **Markdown-aware** | Code fences and inline code are untouched. `$5`, `$10`, `$PATH`, `$and$` are not mistaken for math. |
+| **Cross-platform** | Windows Terminal, macOS, Linux; terminal, Desktop app and VS Code extension surfaces. |
+| **Zero runtime dependencies** | Runs inside Claude Code. No Node.js, no TeX distribution, no external process. |
+| **Hardened by design** | Input limits, no-throw fallbacks, SRI-checked CDN assets, strict CSP and DOMPurify. |
 
-### 从 marketplace 安装（发布到 GitHub 后）
+## Quick start
+
+### Install from GitHub
 
 ```bash
-claude plugin marketplace add <your-name>/claudetex
+claude plugin marketplace add huiihao/ClaudeTex
 claude plugin install tex@claudetex
 ```
 
-### 本地目录加载（推荐开发时使用）
+Then open a new conversation and ask a math question. That's it.
+
+> **Names:** the project and GitHub repository are **ClaudeTex**. The marketplace id is lowercase `claudetex`, the installable plugin id is `tex`, and the command is `/tex`. This keeps the internal ids DNS-safe while the brand stays readable.
+
+### Local development
 
 ```bash
-claude --plugin-dir D:\claude-ui-tex
+git clone https://github.com/huiihao/ClaudeTex
+cd ClaudeTex
+claude --plugin-dir .
 ```
 
-或者把它写进 `~/.claude/settings.json`，让每个会话自动加载：
+### Requirements
 
-```json
-{
-  "env": {
-    "CLAUDE_CODE_PLUGIN_DIRS": "D:\\claude-ui-tex"
-  }
-}
-```
+- Claude Code **2.1.287+** (mods are enabled by default from that version; tested on 2.1.304).
+- A terminal, the Desktop app's Code tab, or the VS Code extension.
+- A browser and internet access for the `/tex` preview (assets are loaded from cdnjs with SRI).
 
-> 本地目录名可以继续叫 `claude-ui-tex`，也可以改成 `claudetex`；插件 id 始终是 `tex`。
+## Usage
 
-### 要求
-
-- Claude Code **2.1.287+**（mods 从该版本默认启用；本项目在 2.1.304 上验证）
-- 终端、桌面 App 的 Code tab、或 VS Code 扩展均可；终端内不需要任何图形协议
-- `/tex` 需要浏览器；预览页从 cdnjs 加载 KaTeX / marked / DOMPurify（带 SRI 校验），因此浏览器需要联网
-
----
-
-## 使用
-
-直接正常提问即可。mod 会给模型加一小段提示，让它用 LaTeX 写公式：
+Just ask normally. ClaudeTex adds a short note to the first prompt of each context window so the model writes formulas as LaTeX.
 
 ```text
-求函数 f(x) = x^2 sin x 的导数，并解释每一步。
+/tex          # latest reply containing math
+/tex all      # every reply in this session
+/tex-preview  # alias for /tex
 ```
 
-终端里的回复会被自动排版。需要精确效果时：
+The preview is written to the system temp directory and opened with your default browser. The command prints the file path, so you can open it manually if the browser does not launch.
 
-```text
-/tex            # 最近一条含公式的回复
-/tex all        # 本次会话的所有回复
-/tex-preview    # 兼容别名，行为同 /tex
-```
+After installing or editing the plugin in an already-running session, run `/reload-plugins` (or restart the session). New sessions load it automatically.
 
-`/tex` 会把页面写到系统临时目录，并用默认浏览器打开；命令结果里会打印文件路径。如果浏览器没有自动打开，手动打开该路径即可。
+## Configuration
 
----
-
-## 配置
-
-在 `/config` 里找到 **tex**，或在 `~/.claude/settings.json` 中配置：
+Run `/plugin configure tex@claudetex`, or edit `~/.claude/settings.json`:
 
 ```json
 {
@@ -141,152 +137,133 @@ claude --plugin-dir D:\claude-ui-tex
 }
 ```
 
-| 选项 | 默认 | 说明 |
+| Option | Default | Description |
 | --- | --- | --- |
-| `inline` | `true` | 是否把行内 `$...$`、`\(...\)` 转成 Unicode |
-| `display` | `true` | 是否把独立公式排成二维文本块 |
-| `teach_claude` | `true` | 是否在每个上下文窗口的第一条提示里告诉模型用 LaTeX |
-| `max_width` | `0` | 独立公式的最大宽度（终端列数）；0 表示跟随终端宽度 |
+| `inline` | `true` | Convert `$...$` and `\(...\)` to Unicode math. |
+| `display` | `true` | Lay out `$$...$$` and `\[...\]` as two-dimensional blocks. |
+| `teach_claude` | `true` | Tell the model to write LaTeX on the first prompt of each context window. |
+| `max_width` | `0` | Maximum width of a display formula in terminal cells. `0` follows the terminal. |
 
-改完配置后运行 `/reload-plugins`（或重开会话）。
+## Supported LaTeX
 
----
+<details>
+<summary><strong>Symbols, scripts, fractions, environments, fonts and accents</strong></summary>
 
-## 支持的 LaTeX
-
-| 类别 | 示例 |
+| Category | Examples |
 | --- | --- |
-| 希腊字母 / 符号 | `\alpha \beta \pi \infty \partial \nabla \forall \exists` |
-| 运算符 / 关系 | `\pm \times \cdot \le \ge \ne \approx \equiv \in \subset \cup \cap \to \Rightarrow` |
-| 上下标 | `x_i^2`、`\sum_{i=1}^n`、`\int_0^1` |
-| 分数 / 根号 | `\frac{a+b}{c}`、`\dfrac`、`\sqrt{x}`、`\sqrt[3]{x}` |
-| 大型运算符 | `\sum \prod \int \iint \oint \bigcup \bigcap` |
-| 矩阵 / 环境 | `pmatrix`、`bmatrix`、`Bmatrix`、`vmatrix`、`Vmatrix`、`cases`、`aligned`、`align`、`gather`、`multline` |
-| 字体 | `\mathbb`、`\mathcal`、`\mathfrak`、`\mathbf`、`\boldsymbol`、`\mathsf`、`\mathtt`、`\mathit`、`\mathrm` |
-| 装饰 | `\hat`、`\bar`、`\vec`、`\dot`、`\ddot`、`\tilde`、`\overline`、`\underline` |
-| 其他 | `\text{...}`、`\boxed{...}`、`\binom{n}{k}`、`\operatorname{...}`、`\left( ... \right)`、`\not\in` |
+| Greek and symbols | `\alpha \beta \pi \infty \partial \nabla \forall \exists` |
+| Operators and relations | `\pm \times \cdot \le \ge \ne \approx \equiv \in \subset \cup \cap \to \Rightarrow` |
+| Scripts | `x_i^2`, `\sum_{i=1}^n`, `\int_0^1` |
+| Fractions and roots | `\frac{a+b}{c}`, `\dfrac`, `\sqrt{x}`, `\sqrt[3]{x}` |
+| Large operators | `\sum \prod \int \iint \oint \bigcup \bigcap` |
+| Environments | `pmatrix`, `bmatrix`, `Bmatrix`, `vmatrix`, `Vmatrix`, `cases`, `aligned`, `align`, `gather`, `multline` |
+| Fonts | `\mathbb`, `\mathcal`, `\mathfrak`, `\mathbf`, `\boldsymbol`, `\mathsf`, `\mathtt`, `\mathit`, `\mathrm` |
+| Accents | `\hat`, `\bar`, `\vec`, `\dot`, `\ddot`, `\tilde`, `\overline`, `\underline` |
+| Utilities | `\text{...}`, `\boxed{...}`, `\binom{n}{k}`, `\operatorname{...}`, `\left( ... \right)`, `\not\in` |
 
-Markdown 中的代码块和行内代码不会被改写；`$5`、`$10`、`$PATH` 这类金额和 shell 变量不会被误当成公式。
+</details>
 
----
+## How it works
 
-## 健壮性设计
-
-这一版（0.2.0）专门加固了异常输入和失败路径：
-
-- **公式长度上限 8,000 字符，嵌套深度上限 64 层**。超过时不做排版，原样保留 LaTeX，不会卡住会话。
-- **解析器保证前进**：每一轮至少消费一个字符或到达 EOF；malformed `\frac{`、未闭合的 `\begin{matrix}`、孤立的 `}`、超长命令序列都不会死循环。
-- **布局上限**：独立公式超过 200 行或 1,000 列时退回为自动换行的单行文本；长单词也会按字符宽度硬切，不会撑爆终端。
-- **Markdown 扫描器**：跳过 fenced code / inline code；代码 span 只在反引号长度完全相同时闭合；支持 CRLF；超过 200,000 字符的回复直接放行给 Claude Code。
-- **误判防护**：行内公式要求更严格的信号；`$$ $$`、`$$$$`、`$5`、`$PATH`、`$and$` 不会被改写；display 公式允许首尾空白。
-- **失败回退**：`transform` 内部任何异常都会返回原文；`/tex` 写文件失败会返回可读错误，不会抛到会话里。
-- **预览页安全**：CDN 资源带 **SRI** 校验；HTML 内容经 DOMPurify 清洗；CSP 限制脚本/样式/字体来源；`</script>` 等序列会被转义；marked 解析失败时退回显示 Markdown 源码。
-- **测试**：**38 个测试**覆盖正常公式、矩阵/环境、malformed 输入、深层嵌套、超长输入、CRLF、代码 span、金额误判、命令错误路径、预览页转义等。
-
----
-
-## 工作方式
-
-这是一个标准的 Claude Code mod，入口是 `hooks/register.ts`：
+ClaudeTex is a standard Claude Code **mod**: a plugin whose hooks module registers functions that run inside Claude Code's own process.
 
 ```text
-claudetex/
+ClaudeTex/
 ├── .claude-plugin/
-│   ├── plugin.json          # 插件清单、用户配置项
-│   └── marketplace.json     # marketplace 清单
+│   ├── plugin.json          # manifest + user config
+│   ├── marketplace.json     # marketplace manifest
+│   └── icon.png
 ├── hooks/
-│   ├── hooks.json           # 指向 hooks 模块
-│   └── register.ts          # ui.render / command.run / prompt.submit
+│   ├── hooks.json
+│   └── register.ts          # ui.render / prompt.submit / command.run
 ├── src/
 │   ├── tex/
-│   │   ├── symbols.ts       # TeX 命令表、字体表、上下标映射
-│   │   ├── parser.ts        # 递归下降解析器 + 深度/长度限制
-│   │   ├── layout.ts        # Unicode 行内渲染 + 二维块布局
-│   │   └── markdown.ts      # Markdown 扫描器：跳过代码，替换公式
-│   └── preview.ts           # KaTeX 预览 HTML（SRI + CSP）
-├── tests/                   # 38 个测试，claude plugin test 运行
-├── dev-types/stubs.d.ts     # 本地类型检查用的最小声明
-├── docs/preview.png
+│   │   ├── symbols.ts       # TeX tables, fonts, script maps
+│   │   ├── parser.ts        # recursive-descent parser + limits
+│   │   ├── layout.ts        # Unicode inline + 2D block layout
+│   │   └── markdown.ts      # code-aware Markdown scanner
+│   └── preview.ts           # KaTeX HTML page (SRI + CSP)
+├── tests/                   # 38 tests
+├── docs/
+│   ├── banner-light.png
+│   ├── banner-dark.png
+│   ├── icon.png
+│   └── preview.png
 └── README.md
 ```
 
-用到的 mods API：
-
-| Hook / 调用 | 作用 |
+| Hook / API call | Role |
 | --- | --- |
-| `ui.render`（`AssistantMessage`） | 在回复绘制前改写文本：行内公式转 Unicode，独立公式转二维代码块 |
-| `ui.render`（`CommandOutput`） | 同样处理 `/btw` 等命令输出的公式 |
-| `prompt.submit` | 每个上下文窗口第一次提交时，附加一段“用 LaTeX 写公式”的提示 |
-| `session.start` | 注册 `/tex` 和 `/tex-preview` 命令 |
-| `session.compact` / `session.end` | 压缩或 `/clear` 后重置提示状态 |
-| `command.run` | `/tex`：读取 `$.session.messages()`，生成 HTML，`$.fs.write` 写入临时目录，`$.process.run` 打开浏览器 |
+| `ui.render` (`AssistantMessage`) | Rewrites the reply before drawing: inline math to Unicode, display math to a 2D block. |
+| `ui.render` (`CommandOutput`) | Same treatment for command output such as `/btw` answers. |
+| `prompt.submit` | Adds a short “write math in LaTeX” note once per context window. |
+| `session.start` | Registers `/tex` and `/tex-preview`. |
+| `session.compact` / `session.end` | Resets the note after compaction or `/clear`. |
+| `command.run` | `/tex`: reads `$.session.messages()`, writes the HTML with `$.fs.write`, opens it with `$.process.run`. |
 
-解析与排版完全在 hooks 模块内完成，没有外部进程或 npm 运行时依赖。
+Everything is local. Parsing, layout and HTML generation happen in the hooks module; there is no external process or npm runtime dependency.
 
----
+## Robustness
 
-## 限制
+The renderer is built to degrade gracefully rather than break a conversation:
 
-- **终端内不是像素级 KaTeX**。终端只能显示字符；分数、矩阵等用 Unicode 制表符做二维近似。真正的排版在 `/tex` 的浏览器页面里。
-- **不做终端图片**。Windows Terminal 不支持 kitty graphics，Claude Code 的 `Image` 元素也只在 kitty/Ghostty 类终端生效，因此本项目没有把公式渲染成 PNG 覆盖到终端上。
-- **`$...$` 是启发式识别**。极少数金额、shell 变量或非公式的 `$` 可能被误判；可以用行内代码包起来避免。
-- **缩进代码块（4 空格开头）**中的 `$...$` 可能仍会被当作行内公式；请用 fenced code（```）包裹代码。
-- **不是完整 TeX 引擎**。未知命令会以命令名显示；极复杂的宏、TikZ、外部宏包不在支持范围内。
-- **`/btw` 面板不经过 `ui.render`**。侧问的回答由 Claude Code 自己的面板绘制，mod 只能通过提示让模型在 `/btw` 里使用 Unicode。
-- **复制的是 Unicode**。从终端选中复制得到的是排版后的字符，不是原始 LaTeX；需要 LaTeX 时用 `/tex` 页面里的 **Source** / **Copy Markdown**。
-- **预览页需要联网**加载 CDN 上的 KaTeX；离线时页面会退化为显示 Markdown 源码。
+- **Bounded parsing** — formulas longer than 8,000 characters or nested deeper than 64 levels are left as LaTeX. The parser guarantees forward progress, so malformed `\frac{`, unclosed `\begin{matrix}` and stray `}` cannot loop.
+- **Bounded layout** — display blocks over 200 lines or 1,000 columns fall back to wrapped text. Long words are split by cell width.
+- **Bounded scanning** — replies over 200,000 characters pass through untouched; code spans close only on an exact backtick run; CRLF is normalized.
+- **Conservative math detection** — currency, shell variables, prose words and empty `$$ $$` are not rewritten. Explicit `\(...\)` and `\[...\]` may contain surrounding whitespace.
+- **No-throw fallbacks** — every transform is wrapped; a failure returns the original reply.
+- **Preview hardening** — SRI on every CDN script and stylesheet, a strict CSP (`connect-src 'none'`), DOMPurify cleaning, and the Markdown source stored in an inert `<template>`.
+- **Tested** — 38 tests cover malformed input, deep nesting, oversized replies, CRLF, code spans, currency heuristics, command failures and command registration.
 
----
+## Limitations
 
-## 开发
+<details>
+<summary><strong>What ClaudeTex deliberately does not do</strong></summary>
+
+- **The terminal is not pixel-perfect KaTeX.** It is a character grid; fractions and matrices are Unicode approximations. Use `/tex` for real typesetting.
+- **No terminal images.** Windows Terminal does not support the kitty graphics protocol, and Claude Code's `Image` element is limited to kitty/Ghostty-class terminals.
+- **Inline math is heuristic.** Rare currency, URL or shell-variable cases can be misdetected. Wrap them in backticks to opt out.
+- **Indented code blocks (4 spaces)** may still have `$...$` transformed. Use fenced code blocks for code.
+- **Not a full TeX engine.** Exotic macros, TikZ and external packages are out of scope; unknown commands are shown by name.
+- **`/btw` panels** are drawn outside `ui.render`; ClaudeTex asks the model to use Unicode math there.
+- **The preview needs a network** to load KaTeX, marked and DOMPurify from cdnjs. Offline, it falls back to the Markdown source.
+
+</details>
+
+## Development
 
 ```bash
-# 校验插件清单和静态分析
 claude plugin validate .
-
-# 运行测试（无需登录、无需网络）
 claude plugin test
-
-# 本地类型检查（使用自带的最小声明）
 npx -y -p typescript@5.7 tsc -p tsconfig.check.json
-
-# 用真实 Claude Code 类型检查（先运行一次 claude --plugin-dir .）
-npx -y -p typescript@5.7 tsc -p tsconfig.real.json
+npx -y -p typescript@5.7 tsc -p tsconfig.real.json   # after loading once with --plugin-dir
 ```
 
-`claude --plugin-dir .` 会在 `.claude-plugin/types/` 下生成当前 Claude Code 版本的完整类型声明（该目录已在 `.gitignore` 中忽略）。
+`claude --plugin-dir .` writes the exact mod types for your Claude Code version into `.claude-plugin/types/` (ignored by Git).
 
-### 发布到 GitHub
+## Privacy
 
-仓库已经在本地初始化并提交。创建 GitHub 仓库后推送即可：
+- ClaudeTex itself makes no network requests. Parsing, layout and HTML generation are local.
+- The `/tex` page loads KaTeX, marked and DOMPurify from `cdnjs.cloudflare.com`, pinned with SRI. The reply content stays in your browser.
+- Markdown is sanitized with DOMPurify before it is inserted into the page.
+- Preview files are written to the system temp directory.
 
-```bash
-# 方式一：gh CLI 一步创建并推送
-gh repo create claudetex --public --source=. --remote=origin --push
+## Naming
 
-# 方式二：先在 GitHub 网页上建空仓库，再添加远程
-git remote add origin https://github.com/<your-name>/claudetex.git
-git push -u origin main
-```
+**ClaudeTex = Claude + TeX.** The name `claudex` was considered, but it is already crowded on GitHub (mostly Claude + Codex multi-model proxies) and taken on npm. `claudetex` is available on npm, unambiguous, and keeps the TeX lineage visible.
 
-之后其他人就可以：
+## Acknowledgements
 
-```bash
-claude plugin marketplace add <your-name>/claudetex
-claude plugin install tex@claudetex
-```
-
----
-
-## 隐私
-
-- mod 本身不发起网络请求；解析、排版、写 HTML 都在本地完成。
-- `/tex` 生成的 HTML 页面会从 `cdnjs.cloudflare.com` 加载 KaTeX、marked 和 DOMPurify，并校验 SRI；公式内容只在本机浏览器里处理。
-- HTML 中的 Markdown 内容经过 DOMPurify 清洗后再插入页面；CSP 禁止网络连接（`connect-src 'none'`）。
-- 预览文件写到系统临时目录（Windows `%TEMP%`、macOS `TMPDIR`、Linux `TMPDIR`/`$HOME`）。
-
----
+- [KaTeX](https://katex.org/) for browser typesetting.
+- [marked](https://marked.js.org/) and [DOMPurify](https://github.com/cure53/DOMPurify) for the preview page.
+- Claude Code's [mods API](https://code.claude.com/docs/en/plugins/mods/overview) for making a real in-process plugin possible.
 
 ## License
 
-MIT。见 [LICENSE](LICENSE)。
+MIT — see [LICENSE](LICENSE).
+
+---
+
+<p align="center">
+  <sub>ClaudeTex is an independent community project, not affiliated with Anthropic. Claude is a trademark of Anthropic, PBC.</sub>
+</p>

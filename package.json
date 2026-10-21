@@ -1,9 +1,9 @@
 {
   "name": "claudetex",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
-  "description": "Claudetex: LaTeX math for Claude Code's terminal — Unicode typesetting plus a KaTeX browser preview",
+  "description": "ClaudeTex: LaTeX math for Claude Code's terminal — Unicode typesetting plus a KaTeX browser preview",
   "scripts": {
     "validate": "claude plugin validate .",
     "test": "claude plugin test",

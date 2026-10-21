@@ -5,7 +5,7 @@ import { buildPreviewHtml } from '../src/preview'
 type Reply = { id: string; text: string }
 
 const MATH_NOTE = `# Math in this session
-Claudetex, a Claude Code mod in this session, typesets math in replies. Write formulas in LaTeX instead of Unicode or ASCII:
+ClaudeTex, a Claude Code mod in this session, typesets math in replies. Write formulas in LaTeX instead of Unicode or ASCII:
 - Inline math: $...$ with no space right after the opening $ or right before the closing $.
 - Display math: $$...$$ on their own lines, with blank lines before and after.
 Use LaTeX for every formula and symbol, including single letters ($x$), fractions, sums, integrals, matrices and cases. Do not replace math with Unicode symbols such as α, ² or ≤, and do not draw formulas with ASCII art.
@@ -185,7 +185,7 @@ async function runPreview($: any, e: any): Promise<{ text: string }> {
     }
     const markdown = markdownFor(selected, all)
     const html = buildPreviewHtml(markdown, {
-      title: all ? 'Claudetex · all replies' : 'Claudetex · latest reply',
+      title: all ? 'ClaudeTex · all replies' : 'ClaudeTex · latest reply',
       subtitle: all
         ? `${selected.length} replies · typeset with KaTeX in your browser`
         : 'Latest reply · typeset with KaTeX in your browser',
@@ -234,7 +234,7 @@ async function runPreview($: any, e: any): Promise<{ text: string }> {
         : `KaTeX preview written to ${file} (open it in a browser).`,
     }
   } catch (error) {
-    return { text: `Claudetex /tex failed: ${String(error)}` }
+    return { text: `ClaudeTex /tex failed: ${String(error)}` }
   }
 }
 
