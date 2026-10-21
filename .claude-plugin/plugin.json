@@ -1,10 +1,10 @@
 {
   "name": "tex",
-  "displayName": "TeX in Terminal",
-  "version": "0.1.0",
-  "description": "Typesets LaTeX math in Claude Code replies as Unicode text in the terminal, and opens a KaTeX browser preview of the same reply.",
+  "displayName": "Claudetex",
+  "version": "0.2.0",
+  "description": "Claudetex typesets LaTeX math in Claude Code replies as Unicode text in the terminal, and opens a KaTeX browser preview of the same reply.",
   "author": {
-    "name": "claude-ui-tex contributors"
+    "name": "claudetex contributors"
   },
   "license": "MIT",
   "keywords": [
@@ -13,6 +13,7 @@
     "math",
     "unicode",
     "terminal",
+    "claudetex",
     "mod"
   ],
   "userConfig": {

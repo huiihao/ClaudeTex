@@ -66,4 +66,52 @@ test('display math: boxed result', () => {
 test('display math: narrow width falls back to wrapping', () => {
   const lines = displayTex('a + b + c + d + e', 10)
   expect(lines.length).toBeGreaterThan(1)
+  for (const line of lines) expect(line.length).toBeLessThanOrEqual(12)
+})
+
+test('malformed input never throws', () => {
+  const inputs = [
+    '\\frac{1}{',
+    '\\sqrt{',
+    '\\begin{pmatrix} a & b',
+    '\\left( x',
+    '}',
+    '{',
+    '\\',
+    '\\end{matrix}',
+    '\\frac',
+    '$$',
+    '\\text{unclosed',
+    '\\begin{aligned} a &= b',
+  ]
+  for (const input of inputs) {
+    expect(() => inlineTex(input)).not.toThrow()
+    expect(() => displayTex(input, 60)).not.toThrow()
+  }
+})
+
+test('deep nesting and oversized formulas are bounded', () => {
+  const deep = '\\frac{'.repeat(200) + 'x' + '}{1}'.repeat(200)
+  const huge = 'x + '.repeat(5000) + 'x'
+  expect(() => inlineTex(deep)).not.toThrow()
+  expect(() => inlineTex(huge)).not.toThrow()
+  expect(() => displayTex(deep, 60)).not.toThrow()
+  expect(() => displayTex(huge, 60)).not.toThrow()
+  expect(inlineTex(deep).length).toBeGreaterThan(0)
+  expect(displayTex(huge, 60).length).toBeGreaterThan(0)
+})
+
+test('negation, operator names and fonts', () => {
+  expect(inlineTex('x \\not\\in A')).toBe('x ∉ A')
+  expect(inlineTex('\\operatorname{argmax}_x f(x)')).toContain('argmax')
+  expect(inlineTex('\\mathcal{L}')).toBe('ℒ')
+  expect(inlineTex('\\mathfrak{g}')).toBe('𝔤')
+  expect(inlineTex('\\text{速度 } v')).toBe('速度 v')
+})
+
+test('cases environment renders with a brace', () => {
+  const text = displayTex('\\begin{cases} x^2 & x \\ge 0 \\\\ -x & x < 0 \\end{cases}', 60).join('\n')
+  expect(text).toContain('⎧')
+  expect(text).toContain('x²')
+  expect(text).toContain('x ≥ 0')
 })

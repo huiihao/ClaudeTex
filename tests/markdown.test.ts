@@ -49,3 +49,55 @@ test('turning both modes off leaves the text alone', () => {
   expect(output.text).toBe(text)
   expect(output.count).toBe(0)
 })
+
+test('CRLF input is normalized and math still converts', () => {
+  const output = transformMarkdown('Line\r\n\r\n$$\r\n\\frac{a}{b}\r\n$$\r\n', options)
+  expect(output.text).toContain('─')
+  expect(output.text).not.toContain('\r')
+})
+
+test('code spans close only on a run of the same length', () => {
+  const text = 'Code ``a ` b`` and math $x^2$.'
+  const output = transformMarkdown(text, options).text
+  expect(output).toContain('``a ` b``')
+  expect(output).toContain('x²')
+})
+
+test('display delimiters inside a sentence stay inline', () => {
+  const output = transformMarkdown('The value $$x^2$$ is small.', options).text
+  expect(output).toContain('x²')
+  expect(output).not.toContain('```')
+})
+
+test('empty math spans are left alone', () => {
+  const output = transformMarkdown('Empty $$ $$ and $$$$ plus $x$.', options).text
+  expect(output).toContain('$$ $$')
+  expect(output).toContain('$$$$')
+  expect(output).toContain('x')
+})
+
+test('oversized replies are left untouched', () => {
+  const text = '$x$ '.repeat(60_000) + 'end'
+  const output = transformMarkdown(text, options)
+  expect(output.changed).toBe(false)
+  expect(output.text).toBe(text)
+  expect(output.count).toBe(0)
+})
+
+test('escaped dollars are not math', () => {
+  const text = 'Price \\$5 and \\$10.'
+  expect(transformMarkdown(text, options).text).toBe(text)
+})
+
+test('prose words in dollars stay prose', () => {
+  const output = transformMarkdown('Use $and$ and $the$ here, but $dx$ is math.', options).text
+  expect(output).toContain('$and$')
+  expect(output).toContain('$the$')
+  expect(output).toContain('dx')
+})
+
+test('display math with surrounding whitespace is still display', () => {
+  const output = transformMarkdown('$$\n  x  \n$$', options).text
+  expect(output).toContain('```')
+  expect(output).toContain('x')
+})

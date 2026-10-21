@@ -1,10 +1,23 @@
-# claude-ui-tex · TeX in Terminal
+# Claudetex · TeX in Terminal
 
-> 一个真正的 **Claude Code mod（plugin）**：在 Claude Code CLI 的对话里，把 AI 输出的 LaTeX 公式排版成可读的 Unicode 公式；需要像素级排版时，用 `/tex-preview` 在浏览器里以 **KaTeX** 精确渲染同一条回复。
+> 一个真正的 **Claude Code mod（plugin）**：在 Claude Code CLI 的对话里，把 AI 输出的 LaTeX 公式排版成可读的 Unicode 公式；需要像素级排版时，用 `/tex` 在浏览器里以 **KaTeX** 精确渲染同一条回复。
 
 不修改 Claude Code 本体，不依赖 VS Code，不需要 TeX 安装，也不需要 Node.js。
 
 ![KaTeX 浏览器预览](docs/preview.png)
+
+## 关于名字
+
+**Claudetex = Claude + TeX。**
+
+`claudex` 很顺口，但 GitHub 上已有十几个同名项目，且大多表示 “Claude + Codex” 多模型代理；npm 上的 `claudex` 也已被占用（v1.0.5）。为了避免混淆，项目名使用 **Claudetex**：
+
+| 名称 | 值 |
+| --- | --- |
+| 项目 / GitHub 仓库 / marketplace | `claudetex` |
+| 可安装插件 id | `tex` |
+| 命令 | `/tex`（别名 `/tex-preview`） |
+| 配置键 | `pluginConfigs.tex.options` |
 
 ---
 
@@ -19,7 +32,7 @@ Claude Code 的 CLI 是字符网格，本身不渲染 LaTeX。社区里的方案
 这个 mod 走两条互补的路线：
 
 1. **终端内**：hook `ui.render`，在回复画出来之前把行内公式转成 Unicode、把独立公式排成二维文本块（分数、根号、上下限、矩阵、cases、aligned……），任何终端都能看。
-2. **浏览器内**：`/tex-preview` 把最近的回复写成本地 HTML，用 KaTeX 做真正的排版。终端里不好读的复杂公式，按一下命令就能在浏览器里看。
+2. **浏览器内**：`/tex` 把最近的回复写成本地 HTML，用 KaTeX 做真正的排版。终端里不好读的复杂公式，按一下命令就能在浏览器里看。
 
 ---
 
@@ -45,7 +58,7 @@ Claude Code 的 CLI 是字符网格，本身不渲染 LaTeX。社区里的方案
             ⎝ c  d ⎠
 ```
 
-浏览器里（`/tex-preview`，KaTeX）：
+浏览器里（`/tex`，KaTeX）：
 
 - 行内 `$...$`、独立 `$$...$$`、`\(...\)`、`\[...\]`
 - 矩阵、`cases`、`aligned`、积分、求和、希腊字母、`\mathbb`、`\text`
@@ -59,8 +72,8 @@ Claude Code 的 CLI 是字符网格，本身不渲染 LaTeX。社区里的方案
 ### 从 marketplace 安装（发布到 GitHub 后）
 
 ```bash
-claude plugin marketplace add <your-name>/claude-ui-tex
-claude plugin install tex@claude-ui-tex
+claude plugin marketplace add <your-name>/claudetex
+claude plugin install tex@claudetex
 ```
 
 ### 本地目录加载（推荐开发时使用）
@@ -79,11 +92,13 @@ claude --plugin-dir D:\claude-ui-tex
 }
 ```
 
+> 本地目录名可以继续叫 `claude-ui-tex`，也可以改成 `claudetex`；插件 id 始终是 `tex`。
+
 ### 要求
 
 - Claude Code **2.1.287+**（mods 从该版本默认启用；本项目在 2.1.304 上验证）
 - 终端、桌面 App 的 Code tab、或 VS Code 扩展均可；终端内不需要任何图形协议
-- `/tex-preview` 需要浏览器；预览页从 cdnjs 加载 KaTeX / marked / DOMPurify，因此浏览器需要联网
+- `/tex` 需要浏览器；预览页从 cdnjs 加载 KaTeX / marked / DOMPurify（带 SRI 校验），因此浏览器需要联网
 
 ---
 
@@ -98,11 +113,12 @@ claude --plugin-dir D:\claude-ui-tex
 终端里的回复会被自动排版。需要精确效果时：
 
 ```text
-/tex-preview        # 最近一条含公式的回复
-/tex-preview all    # 本次会话的所有回复
+/tex            # 最近一条含公式的回复
+/tex all        # 本次会话的所有回复
+/tex-preview    # 兼容别名，行为同 /tex
 ```
 
-`/tex-preview` 会把页面写到系统临时目录，并用默认浏览器打开；命令结果里会打印文件路径。如果浏览器没有自动打开，手动打开该路径即可。
+`/tex` 会把页面写到系统临时目录，并用默认浏览器打开；命令结果里会打印文件路径。如果浏览器没有自动打开，手动打开该路径即可。
 
 ---
 
@@ -148,9 +164,24 @@ claude --plugin-dir D:\claude-ui-tex
 | 矩阵 / 环境 | `pmatrix`、`bmatrix`、`Bmatrix`、`vmatrix`、`Vmatrix`、`cases`、`aligned`、`align`、`gather`、`multline` |
 | 字体 | `\mathbb`、`\mathcal`、`\mathfrak`、`\mathbf`、`\boldsymbol`、`\mathsf`、`\mathtt`、`\mathit`、`\mathrm` |
 | 装饰 | `\hat`、`\bar`、`\vec`、`\dot`、`\ddot`、`\tilde`、`\overline`、`\underline` |
-| 其他 | `\text{...}`、`\boxed{...}`、`\binom{n}{k}`、`\operatorname{...}`、`\left( ... \right)` |
+| 其他 | `\text{...}`、`\boxed{...}`、`\binom{n}{k}`、`\operatorname{...}`、`\left( ... \right)`、`\not\in` |
 
 Markdown 中的代码块和行内代码不会被改写；`$5`、`$10`、`$PATH` 这类金额和 shell 变量不会被误当成公式。
+
+---
+
+## 健壮性设计
+
+这一版（0.2.0）专门加固了异常输入和失败路径：
+
+- **公式长度上限 8,000 字符，嵌套深度上限 64 层**。超过时不做排版，原样保留 LaTeX，不会卡住会话。
+- **解析器保证前进**：每一轮至少消费一个字符或到达 EOF；malformed `\frac{`、未闭合的 `\begin{matrix}`、孤立的 `}`、超长命令序列都不会死循环。
+- **布局上限**：独立公式超过 200 行或 1,000 列时退回为自动换行的单行文本；长单词也会按字符宽度硬切，不会撑爆终端。
+- **Markdown 扫描器**：跳过 fenced code / inline code；代码 span 只在反引号长度完全相同时闭合；支持 CRLF；超过 200,000 字符的回复直接放行给 Claude Code。
+- **误判防护**：行内公式要求更严格的信号；`$$ $$`、`$$$$`、`$5`、`$PATH`、`$and$` 不会被改写；display 公式允许首尾空白。
+- **失败回退**：`transform` 内部任何异常都会返回原文；`/tex` 写文件失败会返回可读错误，不会抛到会话里。
+- **预览页安全**：CDN 资源带 **SRI** 校验；HTML 内容经 DOMPurify 清洗；CSP 限制脚本/样式/字体来源；`</script>` 等序列会被转义；marked 解析失败时退回显示 Markdown 源码。
+- **测试**：**36 个测试**覆盖正常公式、矩阵/环境、malformed 输入、深层嵌套、超长输入、CRLF、代码 span、金额误判、命令错误路径、预览页转义等。
 
 ---
 
@@ -159,21 +190,21 @@ Markdown 中的代码块和行内代码不会被改写；`$5`、`$10`、`$PATH` 
 这是一个标准的 Claude Code mod，入口是 `hooks/register.ts`：
 
 ```text
-claude-ui-tex/
+claudetex/
 ├── .claude-plugin/
 │   ├── plugin.json          # 插件清单、用户配置项
 │   └── marketplace.json     # marketplace 清单
 ├── hooks/
 │   ├── hooks.json           # 指向 hooks 模块
-│   └── register.ts          # 事件钩子：ui.render / command.run / prompt.submit
+│   └── register.ts          # ui.render / command.run / prompt.submit
 ├── src/
 │   ├── tex/
 │   │   ├── symbols.ts       # TeX 命令表、字体表、上下标映射
-│   │   ├── parser.ts        # 递归下降解析器
+│   │   ├── parser.ts        # 递归下降解析器 + 深度/长度限制
 │   │   ├── layout.ts        # Unicode 行内渲染 + 二维块布局
 │   │   └── markdown.ts      # Markdown 扫描器：跳过代码，替换公式
-│   └── preview.ts           # 生成 KaTeX 浏览器预览 HTML
-├── tests/                   # 22 个测试，claude plugin test 运行
+│   └── preview.ts           # KaTeX 预览 HTML（SRI + CSP）
+├── tests/                   # 36 个测试，claude plugin test 运行
 ├── dev-types/stubs.d.ts     # 本地类型检查用的最小声明
 ├── docs/preview.png
 └── README.md
@@ -186,9 +217,9 @@ claude-ui-tex/
 | `ui.render`（`AssistantMessage`） | 在回复绘制前改写文本：行内公式转 Unicode，独立公式转二维代码块 |
 | `ui.render`（`CommandOutput`） | 同样处理 `/btw` 等命令输出的公式 |
 | `prompt.submit` | 每个上下文窗口第一次提交时，附加一段“用 LaTeX 写公式”的提示 |
-| `session.start` | 注册 `/tex-preview` 命令 |
+| `session.start` | 注册 `/tex` 和 `/tex-preview` 命令 |
 | `session.compact` / `session.end` | 压缩或 `/clear` 后重置提示状态 |
-| `command.run` | `/tex-preview`：读取 `$.session.messages()`，生成 HTML，`$.fs.write` 写入临时目录，`$.process.run` 打开浏览器 |
+| `command.run` | `/tex`：读取 `$.session.messages()`，生成 HTML，`$.fs.write` 写入临时目录，`$.process.run` 打开浏览器 |
 
 解析与排版完全在 hooks 模块内完成，没有外部进程或 npm 运行时依赖。
 
@@ -196,12 +227,12 @@ claude-ui-tex/
 
 ## 限制
 
-- **终端内不是像素级 KaTeX**。终端只能显示字符；分数、矩阵等用 Unicode 制表符做二维近似。真正的排版在 `/tex-preview` 的浏览器页面里。
+- **终端内不是像素级 KaTeX**。终端只能显示字符；分数、矩阵等用 Unicode 制表符做二维近似。真正的排版在 `/tex` 的浏览器页面里。
 - **不做终端图片**。Windows Terminal 不支持 kitty graphics，Claude Code 的 `Image` 元素也只在 kitty/Ghostty 类终端生效，因此本项目没有把公式渲染成 PNG 覆盖到终端上。
 - **`$...$` 是启发式识别**。极少数金额、shell 变量或非公式的 `$` 可能被误判；可以用行内代码包起来避免。
 - **不是完整 TeX 引擎**。未知命令会以命令名显示；极复杂的宏、TikZ、外部宏包不在支持范围内。
 - **`/btw` 面板不经过 `ui.render`**。侧问的回答由 Claude Code 自己的面板绘制，mod 只能通过提示让模型在 `/btw` 里使用 Unicode。
-- **复制的是 Unicode**。从终端选中复制得到的是排版后的字符，不是原始 LaTeX；需要 LaTeX 时用 `/tex-preview` 页面里的 **Source** / **Copy Markdown**。
+- **复制的是 Unicode**。从终端选中复制得到的是排版后的字符，不是原始 LaTeX；需要 LaTeX 时用 `/tex` 页面里的 **Source** / **Copy Markdown**。
 - **预览页需要联网**加载 CDN 上的 KaTeX；离线时页面会退化为显示 Markdown 源码。
 
 ---
@@ -230,18 +261,18 @@ npx -y -p typescript@5.7 tsc -p tsconfig.real.json
 
 ```bash
 # 方式一：gh CLI 一步创建并推送
-gh repo create claude-ui-tex --public --source=. --remote=origin --push
+gh repo create claudetex --public --source=. --remote=origin --push
 
 # 方式二：先在 GitHub 网页上建空仓库，再添加远程
-git remote add origin https://github.com/<your-name>/claude-ui-tex.git
+git remote add origin https://github.com/<your-name>/claudetex.git
 git push -u origin main
 ```
 
 之后其他人就可以：
 
 ```bash
-claude plugin marketplace add <your-name>/claude-ui-tex
-claude plugin install tex@claude-ui-tex
+claude plugin marketplace add <your-name>/claudetex
+claude plugin install tex@claudetex
 ```
 
 ---
@@ -249,8 +280,8 @@ claude plugin install tex@claude-ui-tex
 ## 隐私
 
 - mod 本身不发起网络请求；解析、排版、写 HTML 都在本地完成。
-- `/tex-preview` 生成的 HTML 页面会从 `cdnjs.cloudflare.com` 加载 KaTeX、marked 和 DOMPurify；公式内容只在本机浏览器里处理。
-- HTML 中的 Markdown 内容经过 DOMPurify 清洗后再插入页面。
+- `/tex` 生成的 HTML 页面会从 `cdnjs.cloudflare.com` 加载 KaTeX、marked 和 DOMPurify，并校验 SRI；公式内容只在本机浏览器里处理。
+- HTML 中的 Markdown 内容经过 DOMPurify 清洗后再插入页面；CSP 禁止网络连接（`connect-src 'none'`）。
 - 预览文件写到系统临时目录（Windows `%TEMP%`、macOS `TMPDIR`、Linux `TMPDIR`/`$HOME`）。
 
 ---

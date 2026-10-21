@@ -1,11 +1,12 @@
 {
-  "name": "claude-ui-tex",
-  "version": "0.1.0",
+  "name": "claudetex",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
-  "description": "LaTeX math for Claude Code's terminal: Unicode typesetting plus a KaTeX browser preview",
+  "description": "Claudetex: LaTeX math for Claude Code's terminal — Unicode typesetting plus a KaTeX browser preview",
   "scripts": {
     "validate": "claude plugin validate .",
-    "test": "claude plugin test"
+    "test": "claude plugin test",
+    "typecheck": "tsc -p tsconfig.check.json"
   }
 }

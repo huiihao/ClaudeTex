@@ -13,6 +13,11 @@ export type Block = {
   baseline: number
 }
 
+// A formula that lays out beyond these is shown as wrapped text instead. The
+// parser caps input length and nesting; these caps protect the string work.
+const MAX_BLOCK_LINES = 200
+const MAX_BLOCK_WIDTH = 1_000
+
 // ---------------------------------------------------------------------------
 // Width
 
@@ -789,19 +794,40 @@ function renderBlock(node: Node): Block {
 
 function wrap(text: string, width: number): string[] {
   if (width <= 0) return [text]
-  const words = text.split(/(\s+)/)
   const lines: string[] = []
   let line = ''
-  for (const word of words) {
-    if (displayWidth(line + word) <= width || line === '') {
-      line += word
-    } else {
+  const pushLine = () => {
+    if (line !== '') {
       lines.push(trimRight(line))
-      line = word.trimStart()
+      line = ''
     }
   }
-  if (line !== '' || lines.length === 0) lines.push(trimRight(line))
-  return lines
+
+  for (const token of text.split(/(\s+)/)) {
+    if (token === '') continue
+    let remaining = token
+    while (remaining !== '') {
+      if (displayWidth(line + remaining) <= width) {
+        line += remaining
+        break
+      }
+      if (line !== '') {
+        pushLine()
+        continue
+      }
+      // The token itself is wider than the line: cut it at a code point.
+      let chunk = ''
+      for (const ch of remaining) {
+        if (chunk !== '' && displayWidth(chunk + ch) > width) break
+        chunk += ch
+      }
+      if (chunk === '') chunk = remaining[0] ?? ''
+      lines.push(trimRight(chunk))
+      remaining = remaining.slice(chunk.length)
+    }
+  }
+  pushLine()
+  return lines.length > 0 ? lines : ['']
 }
 
 export function renderInlineTree(node: Node): string {
@@ -809,20 +835,23 @@ export function renderInlineTree(node: Node): string {
 }
 
 export function renderDisplayTree(node: Node, maxWidth = 80): string[] {
-  const width = Math.max(12, maxWidth)
+  const width = Number.isFinite(maxWidth) ? Math.max(12, maxWidth) : 80
   let block: Block
   try {
     block = renderBlock(node)
   } catch {
     return wrap(renderInline(node), width)
   }
-  if (block.width > width) return wrap(renderInline(node), width)
+  if (block.width > MAX_BLOCK_WIDTH || block.lines.length > MAX_BLOCK_LINES || block.width > width) {
+    return wrap(renderInline(node), width)
+  }
   const target = Math.min(width, Math.max(block.width + 8, 32))
   const lines = block.lines.map(line => trimRight(center(trimRight(line), target)))
   return lines.length > 0 ? lines : ['']
 }
 
 export function inlineTex(tex: string): string {
+  if (typeof tex !== 'string') return ''
   try {
     return renderInline(parseTex(tex)).replace(/[\r\n]+/g, ' ').trim()
   } catch {
@@ -831,9 +860,11 @@ export function inlineTex(tex: string): string {
 }
 
 export function displayTex(tex: string, maxWidth = 80): string[] {
+  if (typeof tex !== 'string') return ['']
+  const width = Number.isFinite(maxWidth) ? Math.max(12, maxWidth) : 80
   try {
-    return renderDisplayTree(parseTex(tex), maxWidth)
+    return renderDisplayTree(parseTex(tex), width)
   } catch {
-    return wrap(tex.replace(/\s+/g, ' ').trim(), Math.max(12, maxWidth))
+    return wrap(tex.replace(/\s+/g, ' ').trim(), width)
   }
 }

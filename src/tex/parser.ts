@@ -29,6 +29,18 @@ type Stop = {
 
 const NEWLINE = '\\\\'
 
+// A reply can contain anything; these caps keep a malformed or hostile formula
+// from turning into unbounded work. Real formulas are far below them.
+const MAX_TEX_LENGTH = 8_000
+const MAX_DEPTH = 64
+
+class TexLimitError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'TexLimitError'
+  }
+}
+
 function sym(text: string, cls: MathClass = 'ord'): Node {
   return { type: 'sym', text, cls }
 }
@@ -51,6 +63,7 @@ function isSpace(ch: string): boolean {
 
 export class Parser {
   private i = 0
+  private depth = 0
   private readonly s: string
 
   constructor(tex: string) {
@@ -58,8 +71,22 @@ export class Parser {
   }
 
   parse(): Node {
+    if (this.s.length > MAX_TEX_LENGTH) {
+      throw new TexLimitError(`TeX formula is longer than ${MAX_TEX_LENGTH} characters`)
+    }
     const items = this.parseRow({})
     return row(items)
+  }
+
+  private enter(): void {
+    if (this.depth >= MAX_DEPTH) {
+      throw new TexLimitError(`TeX expression is nested more than ${MAX_DEPTH} levels deep`)
+    }
+    this.depth++
+  }
+
+  private leave(): void {
+    this.depth--
   }
 
   private eof(): boolean {
@@ -92,46 +119,55 @@ export class Parser {
   }
 
   private parseRow(stop: Stop): Node[] {
-    const out: Node[] = []
-    while (!this.eof()) {
-      this.skipTrivia()
-      if (this.eof()) break
-      const ch = this.peek()
-      if (ch === '}' && stop.group) break
-      if (ch === '&' && stop.amp) break
-      if (ch === '\\') {
-        const name = this.peekCommandName()
-        if (name === NEWLINE && stop.newline) break
-        if (name === 'end' && stop.end) break
-      }
-      if (ch === '^' || ch === '_') {
-        this.i++
-        const arg = this.parseArg()
-        this.attach(out, ch === '^' ? 'sup' : 'sub', arg)
-        continue
-      }
-      if (ch === "'") {
-        while (this.peek() === "'") {
-          this.i++
-          this.attach(out, 'sup', sym('′'))
+    this.enter()
+    try {
+      const out: Node[] = []
+      while (!this.eof()) {
+        const before = this.i
+        this.skipTrivia()
+        if (this.eof()) break
+        const ch = this.peek()
+        if (ch === '}' && stop.group) break
+        if (ch === '&' && stop.amp) break
+        if (ch === '\\') {
+          const name = this.peekCommandName()
+          if (name === NEWLINE && stop.newline) break
+          if (name === 'end' && stop.end) break
         }
-        continue
+        if (ch === '^' || ch === '_') {
+          this.i++
+          const arg = this.parseArg()
+          this.attach(out, ch === '^' ? 'sup' : 'sub', arg)
+          continue
+        }
+        if (ch === "'") {
+          while (this.peek() === "'") {
+            this.i++
+            this.attach(out, 'sup', sym('′'))
+          }
+          continue
+        }
+        if (ch === '&') {
+          this.i++
+          out.push(space(1))
+          continue
+        }
+        if (ch === '~') {
+          this.i++
+          out.push(space(1))
+          continue
+        }
+        const nodes = this.parseAtom()
+        for (const node of nodes) out.push(node)
+        // Every branch above consumes something, but a malformed command must
+        // never leave the cursor in place and spin this loop forever.
+        if (this.i === before) this.i++
       }
-      if (ch === '&') {
-        this.i++
-        out.push(space(1))
-        continue
-      }
-      if (ch === '~') {
-        this.i++
-        out.push(space(1))
-        continue
-      }
-      const nodes = this.parseAtom()
-      for (const node of nodes) out.push(node)
+      this.normalize(out)
+      return out
+    } finally {
+      this.leave()
     }
-    this.normalize(out)
-    return out
   }
 
   private parseAtom(): Node[] {
@@ -186,6 +222,15 @@ export class Parser {
 
   private parseCommand(): Node[] {
     if (this.peek() !== '\\') return []
+    this.enter()
+    try {
+      return this.parseCommandBody()
+    } finally {
+      this.leave()
+    }
+  }
+
+  private parseCommandBody(): Node[] {
     const name = this.readCommandName()
 
     if (name === NEWLINE) return [{ type: 'newline' }]

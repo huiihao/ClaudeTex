@@ -1,14 +1,14 @@
 {
-  "name": "claude-ui-tex",
-  "description": "LaTeX math for Claude Code's terminal: Unicode typesetting plus a KaTeX browser preview",
+  "name": "claudetex",
+  "description": "Claudetex: LaTeX math for Claude Code's terminal — Unicode typesetting plus a KaTeX browser preview",
   "owner": {
-    "name": "claude-ui-tex contributors"
+    "name": "claudetex contributors"
   },
   "plugins": [
     {
       "name": "tex",
       "source": "./",
-      "description": "Typesets LaTeX math in Claude Code replies as Unicode text in the terminal, and opens a KaTeX browser preview of the same reply."
+      "description": "Claudetex typesets LaTeX math in Claude Code replies as Unicode text in the terminal, and opens a KaTeX browser preview of the same reply."
     }
   ]
 }

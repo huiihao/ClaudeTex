@@ -14,18 +14,38 @@ export type TransformResult = {
 
 const DISPLAY_ENVIRONMENTS = /^(equation|align|gather|multline|eqnarray)\*?$/
 
+// A reply can be arbitrarily long; past this point leave it to Claude Code's
+// renderer rather than spending time scanning it.
+const MAX_SCAN_LENGTH = 200_000
+const MAX_MATH_SPAN = 20_000
+
+// Short words that occur in prose far more often than they do in math. A
+// `$and$` is almost always a false positive; `$dx$` or `$sin$` are not.
+const PROSE_WORDS = new Set([
+  'and', 'the', 'for', 'with', 'from', 'this', 'that', 'are', 'was', 'were',
+  'has', 'have', 'not', 'but', 'you', 'all', 'any', 'can', 'our', 'out',
+  'its', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight',
+  'nine', 'ten', 'is', 'of', 'to', 'in', 'on', 'at', 'by', 'as', 'or',
+  'if', 'so', 'we', 'it', 'be', 'do', 'no', 'up', 'an', 'a', 'i',
+])
+
 function escapeMarkdown(text: string): string {
   return text.replace(/([\\`*_[\]<>|~#&$+\-])/g, '\\$1')
 }
 
-function looksLikeMath(raw: string): boolean {
+// `allowPadding` is for display math, where `$$ x $$` is normal. Inline math
+// with leading or trailing spaces is rejected unless it has a strong math
+// signal, which keeps currency and prose `$...$` from being rewritten.
+function looksLikeMath(raw: string, allowPadding = false): boolean {
   const text = raw.trim()
-  if (text === '' || raw.length > 20_000) return false
-  if (/\\[A-Za-z]+/.test(raw)) return true
-  if (/[\^_{}√∞∂∇∑∏∫≤≥≠≈±∓×÷·→←↔⇒⇔∈∉⊂⊆⊃⊇∪∩=<>+\-*/]/.test(raw)) return true
+  if (text === '' || raw.length > MAX_MATH_SPAN) return false
+  const strong = /\\[A-Za-z]+|[\^_{}√∞∂∇∑∏∫≤≥≠≈±∓×÷·→←↔⇒⇔∈∉⊂⊆⊃⊇∪∩=<>+\-*/]/.test(raw)
+  if (raw !== text && !allowPadding && !strong) return false
+  if (strong) return true
   if (/[α-ωΑ-Ω]/.test(raw)) return true
   if (/\d\s*[+\-*/=]\s*\d/.test(raw)) return true
   if (/^[A-Za-z]$/.test(text)) return true
+  if (PROSE_WORDS.has(text.toLowerCase())) return false
   if (/^[a-z][a-z0-9]{0,3}$/.test(text)) return true
   return false
 }
@@ -48,7 +68,7 @@ function findInlineClose(text: string, start: number): number {
 }
 
 function findDoubleClose(text: string, start: number): number {
-  const limit = Math.min(text.length - 1, start + 20_000)
+  const limit = Math.min(text.length - 1, start + MAX_MATH_SPAN)
   for (let i = start; i < limit; i++) {
     if (text[i] === '\\') {
       i++
@@ -60,7 +80,7 @@ function findDoubleClose(text: string, start: number): number {
 }
 
 function findEscapedClose(text: string, start: number, close: string): number {
-  const limit = Math.min(text.length, start + 20_000)
+  const limit = Math.min(text.length, start + MAX_MATH_SPAN)
   for (let i = start; i < limit; i++) {
     if (text[i] === '\\') {
       if (text.startsWith(close, i)) return i
@@ -74,7 +94,7 @@ function findEscapedClose(text: string, start: number, close: string): number {
 
 function findEnvironmentEnd(text: string, start: number, env: string): number {
   const close = `\\end{${env}}`
-  const limit = Math.min(text.length, start + 20_000)
+  const limit = Math.min(text.length, start + MAX_MATH_SPAN)
   for (let i = start; i < limit; i++) {
     if (text.startsWith(close, i)) return i
   }
@@ -115,16 +135,41 @@ function atLineStart(text: string, index: number): boolean {
   return /^[ \t]*$/.test(text.slice(lineStartIndex, index))
 }
 
+// A code span closes only on a backtick run of exactly the same length, as
+// CommonMark specifies. Searching for the raw run would close `` ` `` on the
+// first backtick of a longer run and could transform math inside code.
+function findBacktickClose(text: string, start: number, length: number): number {
+  let i = start
+  while (i < text.length) {
+    const at = text.indexOf('`', i)
+    if (at === -1) return -1
+    let end = at
+    while (text[end] === '`') end++
+    if (end - at === length) return at
+    i = end
+  }
+  return -1
+}
+
 export function transformMarkdown(text: string, options: TransformOptions): TransformResult {
+  if (typeof text !== 'string') {
+    return { text: String(text ?? ''), changed: false, count: 0 }
+  }
   if (text === '' || (!options.inline && !options.display)) {
     return { text, changed: false, count: 0 }
   }
+  if (text.length > MAX_SCAN_LENGTH) {
+    return { text, changed: false, count: 0 }
+  }
+  // Windows input can carry CRLF; the scanner and the display fences use LF.
+  text = text.replace(/\r\n?/g, '\n')
+
   let out = ''
   let i = 0
   let count = 0
   let lineStart = true
 
-  const maxWidth = Math.max(16, options.maxWidth)
+  const maxWidth = Number.isFinite(options.maxWidth) ? Math.max(16, options.maxWidth) : 80
 
   while (i < text.length) {
     // Fenced code blocks pass through untouched.
@@ -152,7 +197,7 @@ export function transformMarkdown(text: string, options: TransformOptions): Tran
           k = Math.min(text.length, end + (newline === -1 ? 0 : 1))
         }
         i = k
-        lineStart = text.slice(0, i).endsWith('\n')
+        lineStart = i > 0 && text[i - 1] === '\n'
         continue
       }
 
@@ -161,7 +206,7 @@ export function transformMarkdown(text: string, options: TransformOptions): Tran
         const close = findDoubleClose(text, j + 2)
         if (close !== -1) {
           const content = text.slice(j + 2, close)
-          if (looksLikeMath(content)) {
+          if (looksLikeMath(content, true)) {
             const indent = indentFor(lead)
             out += displayBlock(displayTex(content, maxWidth - indent.length), indent) + '\n\n'
             count++
@@ -175,7 +220,7 @@ export function transformMarkdown(text: string, options: TransformOptions): Tran
         const close = findEscapedClose(text, j + 2, '\\]')
         if (close !== -1) {
           const content = text.slice(j + 2, close)
-          if (looksLikeMath(content)) {
+          if (looksLikeMath(content, true)) {
             const indent = indentFor(lead)
             out += displayBlock(displayTex(content, maxWidth - indent.length), indent) + '\n\n'
             count++
@@ -219,7 +264,7 @@ export function transformMarkdown(text: string, options: TransformOptions): Tran
 
     if (ch === '`') {
       const run = /^`+/.exec(text.slice(i))?.[0] ?? '`'
-      const close = text.indexOf(run, i + run.length)
+      const close = findBacktickClose(text, i + run.length, run.length)
       if (close !== -1) {
         out += text.slice(i, close + run.length)
         i = close + run.length
@@ -248,7 +293,7 @@ export function transformMarkdown(text: string, options: TransformOptions): Tran
         const close = findEscapedClose(text, i + 2, '\\]')
         if (close !== -1) {
           const content = text.slice(i + 2, close)
-          if (looksLikeMath(content)) {
+          if (looksLikeMath(content, true)) {
             out += '\n\n' + displayBlock(displayTex(content, maxWidth), '') + '\n\n'
             count++
             i = skipAfterDisplay(text, close + 2)
@@ -274,7 +319,7 @@ export function transformMarkdown(text: string, options: TransformOptions): Tran
         if (close !== -1) {
           const content = text.slice(i + 2, close)
           const displayContext = atLineStart(text, i)
-          if (looksLikeMath(content)) {
+          if (looksLikeMath(content, displayContext)) {
             if (displayContext) {
               out += '\n\n' + displayBlock(displayTex(content, maxWidth), '') + '\n\n'
               count++
