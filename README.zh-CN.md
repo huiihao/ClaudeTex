@@ -59,6 +59,12 @@ ClaudeTex 是一个真正的 **Claude Code mod**，直接 hook 渲染流程：
 ```
 
 <p align="center">
+  <a href="docs/claudetex-intro.mp4"><img src="docs/claudetex-intro.gif" alt="ClaudeTex 介绍动画" width="82%"></a>
+</p>
+
+<p align="center"><sub><strong>10 秒概览</strong> · 点击观看 1080p MP4</sub></p>
+
+<p align="center">
   <img src="docs/preview.png" alt="ClaudeTex KaTeX 预览" width="82%">
 </p>
 

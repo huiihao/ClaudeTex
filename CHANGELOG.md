@@ -6,6 +6,7 @@ The first public release.
 
 - Renamed the project to **ClaudeTex** (`Claude` + `TeX`).
 - Claude-colored icon, light/dark banners, and a Claude-palette KaTeX preview.
+- A 10-second intro animation, embedded as a GIF with a 1080p MP4 link.
 - Automatic terminal typesetting for inline and display math.
 - `/tex` and `/tex all` browser previews with KaTeX; `/tex-preview` alias.
 - Two-dimensional Unicode layout: fractions, roots, limits, matrices, `cases`, `aligned`, `boxed`.

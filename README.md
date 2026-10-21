@@ -60,6 +60,12 @@ You  ❯  /tex
 ```
 
 <p align="center">
+  <a href="docs/claudetex-intro.mp4"><img src="docs/claudetex-intro.gif" alt="ClaudeTex intro animation" width="82%"></a>
+</p>
+
+<p align="center"><sub><strong>10-second tour</strong> · click to watch the 1080p MP4</sub></p>
+
+<p align="center">
   <img src="docs/preview.png" alt="ClaudeTex KaTeX preview" width="82%">
 </p>
 
